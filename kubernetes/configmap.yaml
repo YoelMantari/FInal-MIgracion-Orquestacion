@@ -1,0 +1,8 @@
+# configuracion de endpoints
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # url del microservicio para legacy app
+  API_ENDPOINT: "http://new-microservice-service:8000"
