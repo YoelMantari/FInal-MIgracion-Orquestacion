@@ -1,0 +1,27 @@
+# ingress para enrutamiento externo
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      # ruta para legacy app
+      - path: /app
+        pathType: Prefix
+        backend:
+          service:
+            name: legacy-app-service
+            port:
+              number: 5000
+      # ruta para microservicio
+      - path: /api/v2
+        pathType: Prefix
+        backend:
+          service:
+            name: new-microservice-service
+            port:
+              number: 8000
