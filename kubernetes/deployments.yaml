@@ -1,0 +1,82 @@
+# deployment para aplicacion legacy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: legacy-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: legacy-app
+  template:
+    metadata:
+      labels:
+        app: legacy-app
+    spec:
+      containers:
+      - name: legacy-app
+        image: legacy-app:latest
+        ports:
+        - containerPort: 5000
+        env:
+        # host de la base de datos
+        - name: DB_HOST
+          value: postgres-service
+        envFrom:
+        # credenciales desde secret
+        - secretRef:
+            name: postgres-secret
+        # configuracion desde configmap
+        - configMapRef:
+            name: app-config
+---
+# servicio para legacy app
+apiVersion: v1
+kind: Service
+metadata:
+  name: legacy-app-service
+spec:
+  selector:
+    app: legacy-app
+  ports:
+  - port: 5000
+---
+# deployment para microservicio
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: new-microservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: new-microservice
+  template:
+    metadata:
+      labels:
+        app: new-microservice
+    spec:
+      containers:
+      - name: new-microservice
+        image: new-microservice:latest
+        ports:
+        - containerPort: 8000
+        env:
+        # url del legacy app
+        - name: LEGACY_API_URL
+          value: http://legacy-app-service:5000
+        envFrom:
+        # configuracion desde configmap
+        - configMapRef:
+            name: app-config
+---
+# servicio para microservicio
+apiVersion: v1
+kind: Service
+metadata:
+  name: new-microservice-service
+spec:
+  selector:
+    app: new-microservice
+  ports:
+  - port: 8000
