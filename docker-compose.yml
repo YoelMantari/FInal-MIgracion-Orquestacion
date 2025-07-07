@@ -1,59 +1,55 @@
 version: '3.8'
 
+# red personalizada para aislar servicios
+networks:
+  app_network:
+
 services:
-  # base de datos postgresql para la aplicacion legacy
-  postgres:
+  # base de datos postgresql
+  database:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: legacy_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
+    # montar scripts sql de inicializacion
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    # verificacion de salud para postgres
+      - ./initdb:/docker-entrypoint-initdb.d
+    networks:
+      - app_network
+    # se verifica que postgres este listo
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
-      timeout: 10s
       retries: 3
 
-  # aplicacion legacy en python
+  # aplicacion legacy monolitica
   legacy-app:
     build: ./src/legacy-app
     ports:
       - "5000:5000"
     environment:
-      DB_HOST: postgres
+      DB_HOST: database
       DB_NAME: legacy_db
       DB_USER: postgres
       DB_PASSWORD: password
-    # espera que postgres este listo
+    networks:
+      - app_network
+    # espera que database este healthy
     depends_on:
-      postgres:
+      database:
         condition: service_healthy
-    # verificacion de salud para legacy app
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-  # nuevo microservicio que se comunica con legacy
-  microservice:
+  # microservicio nuevo
+  new-microservice:
     build: ./src/microservice
     ports:
       - "8000:8000"
     environment:
       LEGACY_API_URL: http://legacy-app:5000
-    # espera que legacy app este listo
+    networks:
+      - app_network
+    # espera que legacy-app este healthy
     depends_on:
       legacy-app:
         condition: service_healthy
-    # verificacion de salud para microservicio
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
