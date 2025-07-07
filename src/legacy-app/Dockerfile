@@ -36,10 +36,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # se crea usuario 
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copiar codigo de aplicacion
+# copiar codigo de aplicacion
 COPY app.py .
 
-# Cambiar a usuario no-root
+# cambiar a usuario 
 USER appuser
 
 EXPOSE 5000
